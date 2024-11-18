@@ -10,7 +10,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Parse command-line arguments using Clap 4.3
     let matches = Command::new("nonpareil-chaining")
         .version("0.1.0")
-        .about("Long reads alignment via anchor chaining")
+        .about("Long Reads Alignment via Anchor Chaining")
         .arg(
             Arg::new("reference")
                 .short('r')

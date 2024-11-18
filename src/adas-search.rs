@@ -6,12 +6,12 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::path::PathBuf;
 use num_cpus;
-
+use std::fs::OpenOptions;
 use hnsw_rs::prelude::*;
 use gsearch::utils::idsketch::{Id, ItemDict};
 use gsearch::utils::parameters::*;
 use gsearch::utils::dumpload::*;
-use gsearch::utils::reloadhnsw::*;
+use gsearch::utils::reloadhnsw;
 use gsearch::utils::SeqDict;
 use gsearch::answer::ReqAnswer;
 use kmerutils::sketcharg::{SeqSketcherParams, SketchAlgo};
@@ -22,6 +22,7 @@ use kmerutils::base::alphabet::Alphabet2b;
 use kmerutils::base::sequence::Sequence as SequenceStruct;
 use probminhash::setsketcher::SetSketchParams;
 use log::{debug, info};
+use std::io::BufWriter;
 
 fn ascii_to_seq(bases: &[u8]) -> Result<SequenceStruct, ()> {
     let alphabet = Alphabet2b::new();
@@ -75,7 +76,7 @@ fn main() {
     // Use Clap 4.3 to parse command-line arguments
     let matches = Command::new("nonpareil-search")
         .version("0.1.0")
-        .about("Search query sequences against pre-built Hierarchical Navigable Small World Graphs (HNSW) index")
+        .about("Search Query Sequences against Pre-built Hierarchical Navigable Small World Graphs (HNSW) Index")
         .arg(
             Arg::new("input")
                 .short('i')
@@ -134,25 +135,21 @@ fn main() {
     }
     let mut hnswio = hnswio_res.unwrap();
 
-
-    let hnsw_path = std::path::PathBuf::from(database_dirpath.clone());
+    let hnsw_path = std::path::PathBuf::from(database_dirpath);
     let reload_res = ProcessingParams::reload_json(&hnsw_path);
-    if reload_res.is_ok() {
-        processing_params = Some(reload_res.unwrap());
+    let processing_params = if let Ok(params) = reload_res {
         log::info!(
-            "sketching parameters : {:?}",
-            processing_params.as_ref().unwrap().get_sketching_params()
+            "Sketching parameters: {:?}",
+            params.get_sketching_params()
         );
-        log::info!(
-            "block processing : {:?}",
-            processing_params.as_ref().unwrap().get_block_flag()
-        );
+        log::info!("Block processing: {:?}", params.get_block_flag());
+        params
     } else {
-        std::panic!(
-            "cannot reload parameters (file parameters.json) from dir : {:?}",
+        panic!(
+            "Cannot reload parameters (file parameters.json) from dir: {:?}",
             &hnsw_path
         );
-    }
+    };
     // load sketching parameters
     let sketch_params = processing_params.get_sketching_params();
     
@@ -271,7 +268,6 @@ fn main() {
     };
     
     // Create data as Vec<(&Vec<f64>, usize)> for HNSW insertion
-    let data: Vec<(&Vec<f64>, usize)> = signatures.iter().enumerate().map(|(idx, sig)| (sig, idx)).collect();
     println!("Searching HNSW index...");
     let ef_search = 5000;
     let out_threshold = 1.0;
@@ -284,7 +280,7 @@ fn main() {
         return Err("SeqDict Deserializer dump failed").unwrap();
     }
     let mut outfile = BufWriter::new(outfile.unwrap());
-    let knn_neighbours = hnsw.parallel_search(&data, nb_answers_search, ef_search); 
+    let knn_neighbours = hnsw.parallel_search(&signatures, nb_answers_search, ef_search); 
     for i in 0..knn_neighbours.len() {
         let answer = ReqAnswer::new(nb_answers_search+i, itemv[i].clone(), &knn_neighbours[i]);
         if answer.dump(&seqdict, out_threshold, &mut outfile).is_err() {
