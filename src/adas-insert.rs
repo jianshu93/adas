@@ -6,12 +6,14 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::path::PathBuf;
 use num_cpus;
-
+use std::fs::OpenOptions;
 use hnsw_rs::prelude::*;
 use gsearch::utils::idsketch::{Id, ItemDict};
 use gsearch::utils::parameters::*;
 use gsearch::utils::dumpload::*;
+use gsearch::utils::reloadhnsw;
 use gsearch::utils::SeqDict;
+use gsearch::answer::ReqAnswer;
 use kmerutils::sketcharg::{SeqSketcherParams, SketchAlgo};
 use kmerutils::base::{kmergenerator::*, Kmer32bit, CompressedKmerT};
 use kmerutils::sketching::setsketchert::*;
@@ -20,6 +22,7 @@ use kmerutils::base::alphabet::Alphabet2b;
 use kmerutils::base::sequence::Sequence as SequenceStruct;
 use probminhash::setsketcher::SetSketchParams;
 use log::{debug, info};
+use std::io::BufWriter;
 
 fn ascii_to_seq(bases: &[u8]) -> Result<SequenceStruct, ()> {
     let alphabet = Alphabet2b::new();
@@ -40,15 +43,40 @@ fn kmer_hash_fn_32bit(kmer: &Kmer32bit) -> <Kmer32bit as CompressedKmerT>::Val {
     hashval
 }
 
+/// Parameters defining a Request in a Hnsw database
+pub struct SearchParams {
+    /// directory containing the Hnsw previous dmps
+    hnsw_dir : String,
+    /// fasta file to search
+    search_path : String,
+    /// the number of answers by request
+    nb_answers : usize,
+} // end of RequestParams
+
+impl SearchParams {
+
+    pub fn new(hnsw_dir : String, search_path : String, nb_answers : usize) -> Self {
+        SearchParams{hnsw_dir, search_path, nb_answers}
+    }
+
+    /// get 
+    pub fn get_hnsw_dir(&self) -> &String { &self.hnsw_dir}
+
+    pub fn get_search_path(&self) -> &String { &self.search_path}
+
+    pub fn get_nb_answers(&self) -> usize { self.nb_answers}
+}
+
+
 fn main() {
     // Initialize logger
     println!("\n ************** initializing logger *****************\n");
     let _ = env_logger::Builder::from_default_env().init();
 
     // Use Clap 4.3 to parse command-line arguments
-    let matches = Command::new("nonpareil-build")
+    let matches = Command::new("nonpareil-search")
         .version("0.1.0")
-        .about("Build Hierarchical Navigable Small World Graphs (HNSW) with MinHash sketching")
+        .about("Insert into Pre-built Hierarchical Navigable Small World Graphs (HNSW) Index")
         .arg(
             Arg::new("input")
                 .short('i')
@@ -60,24 +88,13 @@ fn main() {
                 .value_parser(clap::value_parser!(String)),
         )
         .arg(
-            Arg::new("kmer_size")
-                .short('k')
-                .long("kmer-size")
-                .value_name("KMER_SIZE")
-                .help("Size of k-mers, must be ≤14")
-                .action(ArgAction::Set)
-                .value_parser(clap::value_parser!(usize))
-                .default_value("8"),
-        )
-        .arg(
-            Arg::new("sketch_size")
-                .short('s')
-                .long("sketch-size")
-                .value_name("SKETCH_SIZE")
-                .help("Size of the sketch")
-                .action(ArgAction::Set)
-                .value_parser(clap::value_parser!(usize))
-                .default_value("512"),
+            Arg::new("database_path")
+            .short('b')
+            .long("hnsw")
+            .value_name("DATADIR")
+            .help("directory contains pre-built HNSW database files")
+            .required(true)
+            .value_parser(clap::value_parser!(String))
         )
         .arg(
             Arg::new("threads")
@@ -89,70 +106,75 @@ fn main() {
                 .value_parser(clap::value_parser!(usize))
                 .default_value("1"),
         )
-        .arg(
-            Arg::new("hnsw_capacity")
-                .long("hnsw-capacity")
-                .value_name("HNSW_CAPACITY")
-                .help("HNSW capacity parameter")
-                .action(ArgAction::Set)
-                .value_parser(clap::value_parser!(usize))
-                .default_value("50000000"),
-        )
-        .arg(
-            Arg::new("hnsw_ef")
-                .long("hnsw-ef")
-                .value_name("HNSW_EF")
-                .help("HNSW ef parameter")
-                .action(ArgAction::Set)
-                .value_parser(clap::value_parser!(usize))
-                .default_value("1600"),
-        )
-        .arg(
-            Arg::new("hnsw_max_nb_conn")
-                .long("max_nb_connection")
-                .value_name("HNSW_MAX_NB_CONN")
-                .help("HNSW max_nb_conn parameter")
-                .action(ArgAction::Set)
-                .value_parser(clap::value_parser!(u8))
-                .default_value("256"),
-        )
         .get_matches();
-
-    // Parse the command-line arguments using get_one()
+    
     let fasta_path = matches.get_one::<String>("input").unwrap().to_string();
-    let kmer_size = *matches.get_one::<usize>("kmer_size").unwrap();
-    let sketch_size = *matches.get_one::<usize>("sketch_size").unwrap();
+    let db_path = matches.get_one::<String>("database_path").unwrap().to_string();
     let num_threads = *matches.get_one::<usize>("threads").unwrap();
     println!("Using {} threads", num_threads);
-    let hnsw_capacity = *matches.get_one::<usize>("hnsw_capacity").unwrap();
-    let hnsw_ef = *matches.get_one::<usize>("hnsw_ef").unwrap();
-    let hnsw_max_nb_conn = *matches.get_one::<u8>("hnsw_max_nb_conn").unwrap();
+    
 
-    if kmer_size > 15 {
-        panic!("kmer_size must be ≤15");
+    let database_dirpath = Path::new(&db_path);
+
+    let hnswio_res = reloadhnsw::get_hnswio(database_dirpath);
+    if hnswio_res.is_err() {
+        std::panic!("error : {:?}", hnswio_res.err());
     }
+    let mut hnswio = hnswio_res.unwrap();
 
-    // Set the number of threads globally using Rayon
-    rayon::ThreadPoolBuilder::new()
-        .num_threads(num_threads)
-        .build_global()
-        .unwrap();
+    let hnsw_path = std::path::PathBuf::from(database_dirpath);
+    let reload_res = ProcessingParams::reload_json(&hnsw_path);
+    let processing_params = if let Ok(params) = reload_res {
+        log::info!(
+            "Sketching parameters: {:?}",
+            params.get_sketching_params()
+        );
+        log::info!("Block processing: {:?}", params.get_block_flag());
+        params
+    } else {
+        panic!(
+            "Cannot reload parameters (file parameters.json) from dir: {:?}",
+            &hnsw_path
+        );
+    };
+    // load sketching parameters
+    let sketch_params = processing_params.get_sketching_params();
+    let hnsw_params = processing_params.get_hnsw_params();
 
-    // Set up sketching parameters
-    let sketch_args = SeqSketcherParams::new(
-        kmer_size,
-        sketch_size,
-        SketchAlgo::OPTDENS,
-        DataType::DNA,
-    );
-
-    // Define type aliases for clarity
+    // Define type aliases 
     type Kmer = Kmer32bit;
     type Sketcher = OptDensHashSketch<Kmer, f64>;
 
     info!("Calling sketch_compressedkmer for OptDensHashSketch::<Kmer32bit, f64>");
-    let sketcher = Sketcher::new(&sketch_args);
+    let sketcher = Sketcher::new(&sketch_params);
 
+    let hnsw_res = hnswio.load_hnsw::< <OptDensHashSketch<Kmer, f64> as SeqSketcherT<Kmer32bit> >::Sig, DistHamming>();
+    if hnsw_res.is_err() {
+        std::panic!("error : {:?}", hnsw_res.err());
+    };
+    let hnsw = hnsw_res.unwrap();
+
+    /// load sequence dictionary
+    let seqname = database_dirpath.join("seqdict.json");
+    log::info!(
+        "\n reloading sequence dictionary from {}",
+        &seqname.display()
+    );
+    let seqdict = SeqDict::reload_json(&seqname);
+    let mut seqdict = match seqdict {
+        Ok(seqdict) => seqdict,
+        _ => {
+            panic!(
+                "SeqDict reload from dump file  {} failed",
+                seqname.display()
+            );
+        }
+    };
+        // Set the number of threads globally using Rayon
+        rayon::ThreadPoolBuilder::new()
+        .num_threads(num_threads)
+        .build_global()
+        .unwrap();
     // Create a channel for the producer-consumer model
     let (tx, rx): (Sender<(Vec<u8>, Vec<u8>)>, Receiver<(Vec<u8>, Vec<u8>)>) = channel();
 
@@ -179,8 +201,6 @@ fn main() {
     let signatures_clone = Arc::clone(&signatures);
     let itemv = Arc::new(Mutex::new(Vec::new())); // For seqdict
     let itemv_clone = Arc::clone(&itemv);
-
-    // Clone the sketcher for use in the consumer thread
     let sketcher_clone = sketcher.clone();
 
     let fasta_path_clone_for_consumer = fasta_path.clone();
@@ -219,13 +239,11 @@ fn main() {
             }
         }
     });
-
     // Wait for both threads to finish
     producer_handle.join().expect("Producer thread panicked");
     consumer_handle.join().expect("Consumer thread panicked");
 
-    // After collecting all signatures, build the HNSW index in the main thread
-    println!("Building HNSW index...");
+    println!("Inserting into HNSW index...");
 
     // Retrieve the collected signatures and sequence metadata
     let signatures = Arc::try_unwrap(signatures).unwrap().into_inner().unwrap();
@@ -240,40 +258,18 @@ fn main() {
     // Create data as Vec<(&Vec<f64>, usize)> for HNSW insertion
     let data: Vec<(&Vec<f64>, usize)> = signatures.iter().enumerate().map(|(idx, sig)| (sig, idx)).collect();
 
-    // Build the HNSW index
-    let hnsw_params = HnswParams::new(hnsw_capacity, hnsw_ef, hnsw_max_nb_conn);
 
-    let mut hnsw = Hnsw::<
-        <Sketcher as SeqSketcherT<Kmer>>::Sig,
-        DistHamming,
-    >::new(
-        hnsw_params.get_max_nb_connection() as usize,
-        hnsw_params.capacity,
-        16, // Adjust as needed
-        hnsw_params.get_ef(),
-        DistHamming {},
-    );
-
-    hnsw.set_extend_candidates(true);
-    hnsw.set_keeping_pruned(false);
-    // Parallel insert all signatures to build HNSW index, using all threads by default
     hnsw.parallel_insert(&data);
-
-    // Create seqdict
-    let mut seqdict = SeqDict::new(1000000);
-
     seqdict.0.append(&mut itemv);
 
-    // Now, create processing_params, which includes HnswParams, sketch_args, and block_flag
-    let block_flag = false; // Set as appropriate
-    let processing_params = ProcessingParams::new(hnsw_params, sketch_args, block_flag);
+    assert_eq!(seqdict.get_nb_entries(), hnsw.get_nb_point());
+        // Now, create processing_params, which includes HnswParams, sketch_args, and block_flag
 
     // Now dump all data
-    let dump_path = PathBuf::from(".");
-    let dump_path_ref = &dump_path;
+    let dump_path = db_path.clone();
+    let dump_path_ref = &PathBuf::from(dump_path);
 
     let _ = dumpall(dump_path_ref, &hnsw, &seqdict, &processing_params);
 
-    println!("HNSW index built successfully \n");
-
+    println!("HNSW index inserted successfully \n");
 }

@@ -13,6 +13,14 @@ Here we simply describe the algorithm:
 2. Search new sequences against the pre-built database. The same Order MinHash algorithm will be used.
 3. For closest sequences to query seqeunces (e.g., top 100), seed-chain-exend and adaptive banded dynamic progrmming will be performed. 
 
+## Install
+```bash
+### Install Rust first if you do not have it
+git clone https://github.com/jianshu93/adas
+cargo build --release
+
+```
+
 ## Usage
 ```bash
 adas-build -h

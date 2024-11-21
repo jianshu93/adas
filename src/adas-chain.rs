@@ -81,7 +81,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     // Consumer threads: receive sequences and perform alignment
-    let consumers: Vec<_> = (0..num_threads)
+    let consumers: Vec<_> = (0..num_threads-1)
         .map(|_| {
             let receiver = receiver.clone();
             let aligner = aligner.clone(); // Ensure aligner is cloneable

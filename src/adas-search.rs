@@ -76,7 +76,7 @@ fn main() {
     // Use Clap 4.3 to parse command-line arguments
     let matches = Command::new("nonpareil-search")
         .version("0.1.0")
-        .about("Search Query Sequences against Pre-built Hierarchical Navigable Small World Graphs (HNSW) Index")
+        .about("Search against Pre-built Hierarchical Navigable Small World Graphs (HNSW) Index")
         .arg(
             Arg::new("input")
                 .short('i')

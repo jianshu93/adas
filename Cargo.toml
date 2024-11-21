@@ -11,6 +11,10 @@ name = "adas-build"
 path = "src/adas-build.rs"
 
 [[bin]]
+name = "adas-insert"
+path = "src/adas-insert.rs"
+
+[[bin]]
 name = "adas-search"
 path = "src/adas-search.rs"
 
