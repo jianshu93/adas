@@ -18,10 +18,13 @@ Here we simply describe the algorithm:
 ### Install Rust first if you do not have it
 git clone https://github.com/jianshu93/adas
 cargo build --release
+cd target/release
 
 ```
 
 ## Usage
+
+1. build HNSW database
 ```bash
 adas-build -h
 
@@ -42,7 +45,7 @@ Options:
   -h, --help                                  Print help
   -V, --version                               Print version
 ```
-
+2. Search pre-built HNSW database
 ```bash
 adas-search -h
 
@@ -60,6 +63,24 @@ Options:
   -h, --help                      Print help
   -V, --version                   Print version
 ```
+3. Insert new sequences into HNSW database
+```bash
+./adas-insert -h
+ ************** initializing logger *****************
+
+Insert into Pre-built Hierarchical Navigable Small World Graphs (HNSW) Index
+
+Usage: adas-insert [OPTIONS] --input <FASTA_FILE> --hnsw <DATADIR>
+
+Options:
+  -i, --input <FASTA_FILE>  Input FASTA file
+  -b, --hnsw <DATADIR>      directory contains pre-built HNSW database files
+  -t, --threads <THREADS>   Number of threads for sketching [default: 1]
+  -h, --help                Print help
+  -V, --version             Print version
+
+```
+4. Approximate alignment via chaining
 ```bash
 adas-chain -h
 Long Reads Alignment via Anchor Chaining
