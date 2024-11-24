@@ -14,10 +14,23 @@ Here we simply describe the algorithm:
 3. For closest sequences to query seqeunces (e.g., top 100), seed-chain-exend and adaptive banded dynamic progrmming will be performed. 
 
 ## Install
+### compile from source
+
 ```bash
 ### Install Rust first if you do not have it
+### For Linux
 git clone https://github.com/jianshu93/adas
+cd adas
 cargo build --release
+cd target/release
+
+
+### for MacOS
+### Install homebrew first here: https://brew.sh
+brew install gcc
+git clone https://github.com/jianshu93/adas
+cd adas
+CC="$(brew --prefix)/bin/gcc-14" CXX="$(brew --prefix)/bin/g++-14" cargo build --release
 cd target/release
 
 ```
