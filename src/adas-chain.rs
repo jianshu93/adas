@@ -8,7 +8,7 @@ use std::io::Write;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Parse command-line arguments using Clap 4.3
-    let matches = Command::new("nonpareil-chaining")
+    let matches = Command::new("adas-chaining")
         .version("0.1.0")
         .about("Long Reads Alignment via Anchor Chaining")
         .arg(
@@ -63,7 +63,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let aligner = Aligner::builder()
         .ava_ont()
         .with_index_threads(num_threads)
-        .with_cigar()
         .with_index(ref_path, None)
         .expect("Unable to build index");
 
@@ -81,18 +80,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     // Consumer threads: receive sequences and perform alignment
-    let consumers: Vec<_> = (0..num_threads-1)
-        .map(|_| {
-            let receiver = receiver.clone();
-            let aligner = aligner.clone(); // Ensure aligner is cloneable
-            thread::spawn(move || {
-                receiver
-                    .iter()
-                    .filter_map(|seq: Vec<u8>| aligner.map(&seq, false, false, None, None).ok())
-                    .collect::<Vec<_>>()
-            })
+    let consumers: Vec<_> = (0..num_threads).map(|_| {
+        let receiver = receiver.clone();
+        let mut aligner = aligner.clone(); // Make aligner mutable
+        thread::spawn(move || {
+            let results = receiver.iter().filter_map(|seq: Vec<u8>| {
+                aligner.map(&seq, false, false, None, None).ok()
+            }).collect::<Vec<_>>();
+    
+            // Set aligner.idx to None before the thread exits
+            aligner.idx = None;
+            results
         })
-        .collect();
+    }).collect();
 
     // Wait for the producer to finish reading
     producer.join().expect("Producer thread panicked");

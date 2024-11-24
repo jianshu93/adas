@@ -74,7 +74,7 @@ fn main() {
     let _ = env_logger::Builder::from_default_env().init();
 
     // Use Clap 4.3 to parse command-line arguments
-    let matches = Command::new("nonpareil-search")
+    let matches = Command::new("adas-search")
         .version("0.1.0")
         .about("Search against Pre-built Hierarchical Navigable Small World Graphs (HNSW) Index")
         .arg(
@@ -282,9 +282,10 @@ fn main() {
     let mut outfile = BufWriter::new(outfile.unwrap());
     let knn_neighbours = hnsw.parallel_search(&signatures, nb_answers_search, ef_search); 
     for i in 0..knn_neighbours.len() {
-        let answer = ReqAnswer::new(nb_answers_search+i, itemv[i].clone(), &knn_neighbours[i]);
+        let answer = ReqAnswer::new(i, itemv[i].clone(), &knn_neighbours[i]);
         if answer.dump(&seqdict, out_threshold, &mut outfile).is_err() {
             log::info!("could not dump answer for request id {}", answer.get_request_id().get_id().get_fasta_id());
         }
     }
+    println!("Done. Search results saved to adas.neighbors.txt");
 }

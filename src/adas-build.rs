@@ -46,7 +46,7 @@ fn main() {
     let _ = env_logger::Builder::from_default_env().init();
 
     // Use Clap 4.3 to parse command-line arguments
-    let matches = Command::new("nonpareil-build")
+    let matches = Command::new("adas-build")
         .version("0.1.0")
         .about("Build Hierarchical Navigable Small World Graphs (HNSW) with MinHash sketching")
         .arg(
@@ -114,7 +114,7 @@ fn main() {
                 .help("HNSW max_nb_conn parameter")
                 .action(ArgAction::Set)
                 .value_parser(clap::value_parser!(u8))
-                .default_value("256"),
+                .default_value("255"),
         )
         .get_matches();
 
