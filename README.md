@@ -17,6 +17,11 @@ Here we simply describe the algorithm:
 ### compile from source
 
 ```bash
+wget https://github.com/jianshu93/adas/releases/download/v0.1.0/adas-Linux-x86-64_v0.1.0.zip
+unzip adas-Linux-x86-64_v0.1.0.zip
+chmod a+x ./adas-*
+./adas-build -h
+
 ### Install Rust first if you do not have it
 ### For Linux
 git clone https://github.com/jianshu93/adas
