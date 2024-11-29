@@ -85,7 +85,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut aligner = aligner.clone(); // Make aligner mutable
         thread::spawn(move || {
             let results = receiver.iter().filter_map(|seq: Vec<u8>| {
-                aligner.map(&seq, false, false, None, None).ok()
+                aligner.map(&seq, false, false, None, None, None).ok()
             }).collect::<Vec<_>>();
     
             // Set aligner.idx to None before the thread exits
