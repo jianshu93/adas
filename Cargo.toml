@@ -35,9 +35,11 @@ needletail = "0.5.1"
 rayon = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 num = "0.4"
-gsearch = { version = "0.1.4", default-features = false, features = ["simdeez_f"]}
-kmerutils = { version = "0.0.11", features = ["simdeez_f"]}
-hnsw_rs =  { version = "0.3" }
+#gsearch = { version = "0.1.4", default-features = false, features = ["simdeez_f"]}
+gsearch = { git= "https://github.com/jean-pierreBoth/gsearch", default-features = false, features = ["simdeez_f"]}
+##kmerutils = { version = "0.0.11", features = ["simdeez_f"]}
+kmerutils = { git = "https://github.com/jean-pierreBoth/kmerutils" ,features = ["simdeez_f"]}
+hnsw_rs =  { version = "0.3.1" }
 probminhash = "0.1.11"
 minimap2 = "=0.1.21+minimap2.2.28"
 log = { version = "0.4" }
@@ -45,5 +47,5 @@ crossbeam-utils = { version = "0.8" }
 crossbeam-channel = { version = "0.5" }
 crossbeam = { version = "0.8" }
 env_logger = { version = "0.11" }
-annembed_gsearch = { version = "0.1.3", default-features = false }
+annembed = { version = "0.1.4", default-features = false }
 num-traits = "0.2.19"

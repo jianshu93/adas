@@ -116,6 +116,14 @@ fn main() {
                 .value_parser(clap::value_parser!(u8))
                 .default_value("255"),
         )
+        .arg(Arg::new("scale_modification")
+            .long("scale_modify_f")
+            .help("scale modification factor in HNSW or HubNSW, must be in [0.2,1]")
+            .value_name("scale_modify")
+            .default_value("1.0")
+            .action(ArgAction::Set)
+            .value_parser(clap::value_parser!(f64))
+        )
         .get_matches();
 
     // Parse the command-line arguments using get_one()
@@ -127,7 +135,7 @@ fn main() {
     let hnsw_capacity = *matches.get_one::<usize>("hnsw_capacity").unwrap();
     let hnsw_ef = *matches.get_one::<usize>("hnsw_ef").unwrap();
     let hnsw_max_nb_conn = *matches.get_one::<u8>("hnsw_max_nb_conn").unwrap();
-
+    let scale_modify = *matches.get_one::<f64>("scale_modification").unwrap();
     if kmer_size > 15 {
         panic!("kmer_size must be ≤15");
     }
@@ -241,7 +249,7 @@ fn main() {
     let data: Vec<(&Vec<f64>, usize)> = signatures.iter().enumerate().map(|(idx, sig)| (sig, idx)).collect();
 
     // Build the HNSW index
-    let hnsw_params = HnswParams::new(hnsw_capacity, hnsw_ef, hnsw_max_nb_conn);
+    let hnsw_params = HnswParams::new(hnsw_capacity, hnsw_ef, hnsw_max_nb_conn, scale_modify);
 
     let mut hnsw = Hnsw::<
         <Sketcher as SeqSketcherT<Kmer>>::Sig,
@@ -253,9 +261,10 @@ fn main() {
         hnsw_params.get_ef(),
         DistHamming {},
     );
-
+    hnsw.modify_level_scale(scale_modify);
     hnsw.set_extend_candidates(true);
     hnsw.set_keeping_pruned(false);
+    
     // Parallel insert all signatures to build HNSW index, using all threads by default
     hnsw.parallel_insert(&data);
 
