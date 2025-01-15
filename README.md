@@ -14,14 +14,16 @@ Here we simply describe the algorithm:
 3. For closest sequences to query seqeunces (e.g., top 100), seed-chain-exend and adaptive banded dynamic progrmming will be performed. 
 
 ## Install
-### compile from source
 
+### Pre-built binary (Linux)
 ```bash
 wget https://github.com/jianshu93/adas/releases/download/v0.1.1/adas-Linux-x86-64_v0.1.1.zip
 unzip adas-Linux-x86-64_v0.1.0.zip
 chmod a+x ./adas-*
 ./adas-build -h
-
+```
+### compile from source
+```bash
 ### Install Rust first if you do not have it
 ### For Linux
 git clone https://github.com/jianshu93/adas
@@ -37,7 +39,6 @@ git clone https://github.com/jianshu93/adas
 cd adas
 CC="$(brew --prefix)/bin/gcc-14" CXX="$(brew --prefix)/bin/g++-14" cargo build --release
 cd target/release
-
 ```
 
 ## Usage
@@ -113,5 +114,14 @@ Options:
   -o, --output <OUTPUT_PATH>         Output path to write the results
   -h, --help                         Print help
   -V, --version                      Print version
+```
+
+## Running test using real-world dataset
+
+```bash
+mkdir db_test
+cd db_test
+adas-build -i ../data/SAR11_cluster_centroid.fa -t 24 -s 256 --hnsw-ef 800 --max_nb_connection 128 --scale_modify_f 0.25
+adas-search -i ../data/test_16S_SAR11.fa -b . -n 50 -t 24
 ```
 
