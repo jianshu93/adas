@@ -57,9 +57,10 @@ Options:
   -k, --kmer-size <KMER_SIZE>                 Size of k-mers, must be ≤14 [default: 8]
   -s, --sketch-size <SKETCH_SIZE>             Size of the sketch [default: 512]
   -t, --threads <THREADS>                     Number of threads for sketching [default: 1]
-      --hnsw-capacity <HNSW_CAPACITY>         HNSW capacity parameter [default: 50000000]
       --hnsw-ef <HNSW_EF>                     HNSW ef parameter [default: 1600]
       --max_nb_connection <HNSW_MAX_NB_CONN>  HNSW max_nb_conn parameter [default: 256]
+      --scale_modify_f <scale_modify>
+          scale modification factor in HNSW or HubNSW, must be in [0.2,1] [default: 1.0]
   -h, --help                                  Print help
   -V, --version                               Print version
 ```
