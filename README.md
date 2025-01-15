@@ -28,7 +28,7 @@ chmod a+x ./adas-*
 ### For Linux
 git clone https://github.com/jianshu93/adas
 cd adas
-cargo build --release
+cargo build --release --jobs 10
 cd target/release
 
 
