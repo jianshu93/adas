@@ -9,7 +9,7 @@ use std::io::Write;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Parse command-line arguments using Clap 4.3
     let matches = Command::new("adas-chaining")
-        .version("0.1.0")
+        .version("0.1.1")
         .about("Long Reads Alignment via Anchor Chaining")
         .arg(
             Arg::new("reference")

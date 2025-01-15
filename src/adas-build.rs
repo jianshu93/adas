@@ -49,7 +49,7 @@ fn main() {
 
     // Use Clap 4.3 to parse command-line arguments
     let matches = Command::new("adas-build")
-        .version("0.1.0")
+        .version("0.1.1")
         .about("Build Hierarchical Navigable Small World Graphs (HNSW) with MinHash sketching")
         .arg(
             Arg::new("input")

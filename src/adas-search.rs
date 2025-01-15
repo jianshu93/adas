@@ -78,7 +78,7 @@ fn main() {
 
     // Use Clap 4.3 to parse command-line arguments
     let matches = Command::new("adas-search")
-        .version("0.1.0")
+        .version("0.1.1")
         .about("Search against Pre-built Hierarchical Navigable Small World Graphs (HNSW) Index")
         .arg(
             Arg::new("input")

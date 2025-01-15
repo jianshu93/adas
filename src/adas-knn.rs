@@ -23,7 +23,7 @@ fn main() {
 
     // Use Clap to parse command-line arguments
     let matches = Command::new("adas-knn")
-        .version("0.1.0")
+        .version("0.1.1")
         .about("Extract K Nearest Neighbors (K-NN) from HNSW graph")
         .arg(
             Arg::new("database_path")
