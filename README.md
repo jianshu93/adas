@@ -17,7 +17,7 @@ Here we simply describe the algorithm:
 ### compile from source
 
 ```bash
-wget https://github.com/jianshu93/adas/releases/download/v0.1.0/adas-Linux-x86-64_v0.1.0.zip
+wget https://github.com/jianshu93/adas/releases/download/v0.1.1/adas-Linux-x86-64_v0.1.1.zip
 unzip adas-Linux-x86-64_v0.1.0.zip
 chmod a+x ./adas-*
 ./adas-build -h
