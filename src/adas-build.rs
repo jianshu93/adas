@@ -1,13 +1,10 @@
 use clap::{Arg, ArgAction, Command};
-// -- Instead of std::sync::mpsc, we use crossbeam::channel
 use crossbeam::channel::{unbounded, Sender, Receiver};
-
 use needletail::{parse_fastx_file, Sequence};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::path::PathBuf;
-// If you use num_cpus somewhere else, keep it; otherwise remove
 use num_cpus;
 
 use hnsw_rs::prelude::*;
@@ -95,15 +92,6 @@ fn main() {
                 .default_value("1"),
         )
         .arg(
-            Arg::new("hnsw_capacity")
-                .long("hnsw-capacity")
-                .value_name("HNSW_CAPACITY")
-                .help("HNSW capacity parameter")
-                .action(ArgAction::Set)
-                .value_parser(clap::value_parser!(usize))
-                .default_value("50000000"),
-        )
-        .arg(
             Arg::new("hnsw_ef")
                 .long("hnsw-ef")
                 .value_name("HNSW_EF")
@@ -138,21 +126,22 @@ fn main() {
     let sketch_size = *matches.get_one::<usize>("sketch_size").unwrap();
     let num_threads = *matches.get_one::<usize>("threads").unwrap();
     println!("Using {} threads", num_threads);
-    let hnsw_capacity = *matches.get_one::<usize>("hnsw_capacity").unwrap();
     let hnsw_ef = *matches.get_one::<usize>("hnsw_ef").unwrap();
     let hnsw_max_nb_conn = *matches.get_one::<u8>("hnsw_max_nb_conn").unwrap();
     let scale_modify = *matches.get_one::<f64>("scale_modification").unwrap();
 
     if kmer_size > 15 {
-        panic!("kmer_size must be ≤15");
+        panic!("kmer_size must be ≤14");
     }
 
+    
     // If your code uses Rayon for something, set up the Rayon thread pool
     rayon::ThreadPoolBuilder::new()
         .num_threads(num_threads)
         .build_global()
         .unwrap();
 
+    println!("Sketching...");
     // Set up sketching parameters
     let sketch_args = SeqSketcherParams::new(
         kmer_size,
@@ -168,7 +157,6 @@ fn main() {
     info!("Calling sketch_compressedkmer for OptDensHashSketch::<Kmer32bit, f64>");
     let sketcher = Sketcher::new(&sketch_args);
 
-    // ---------------------------------
     // Use Crossbeam's unbounded channel:
     let (tx, rx): (Sender<(Vec<u8>, Vec<u8>)>, Receiver<(Vec<u8>, Vec<u8>)>) = unbounded();
 
@@ -248,7 +236,7 @@ fn main() {
     for handle in consumer_handles {
         handle.join().expect("Consumer thread panicked");
     }
-
+    println!("Sketching done...");
     // ---- Now build HNSW in the main thread ----
     println!("Building HNSW index...");
 
@@ -273,7 +261,8 @@ fn main() {
         .collect();
 
     // Build the HNSW index
-    let hnsw_params = HnswParams::new(hnsw_capacity, hnsw_ef, hnsw_max_nb_conn, scale_modify);
+    let max_nb_conn: u8 = 255.min(hnsw_max_nb_conn as u8);
+    let hnsw_params = HnswParams::new(2_500_000, hnsw_ef, max_nb_conn, scale_modify);
 
     let mut hnsw = Hnsw::<
         <Sketcher as SeqSketcherT<Kmer>>::Sig,
