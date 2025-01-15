@@ -1,10 +1,13 @@
 use clap::{Arg, ArgAction, Command};
+// -- Instead of std::sync::mpsc, we use crossbeam::channel
+use crossbeam::channel::{unbounded, Sender, Receiver};
+
 use needletail::{parse_fastx_file, Sequence};
 use std::path::Path;
-use std::sync::mpsc::{channel, Sender, Receiver};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::path::PathBuf;
+// If you use num_cpus somewhere else, keep it; otherwise remove
 use num_cpus;
 
 use hnsw_rs::prelude::*;
@@ -12,6 +15,7 @@ use gsearch::utils::idsketch::{Id, ItemDict};
 use gsearch::utils::parameters::*;
 use gsearch::utils::dumpload::*;
 use gsearch::utils::SeqDict;
+
 use kmerutils::sketcharg::{SeqSketcherParams, SketchAlgo};
 use kmerutils::base::{kmergenerator::*, Kmer32bit, CompressedKmerT};
 use kmerutils::sketching::setsketchert::*;
@@ -19,6 +23,7 @@ use kmerutils::sketcharg::DataType;
 use kmerutils::base::alphabet::Alphabet2b;
 use kmerutils::base::sequence::Sequence as SequenceStruct;
 use probminhash::setsketcher::SetSketchParams;
+
 use log::{debug, info};
 
 fn ascii_to_seq(bases: &[u8]) -> Result<SequenceStruct, ()> {
@@ -41,7 +46,7 @@ fn kmer_hash_fn_32bit(kmer: &Kmer32bit) -> <Kmer32bit as CompressedKmerT>::Val {
 }
 
 fn main() {
-    // Initialize logger
+    // Initialize logger (optional)
     println!("\n ************** initializing logger *****************\n");
     let _ = env_logger::Builder::from_default_env().init();
 
@@ -116,17 +121,18 @@ fn main() {
                 .value_parser(clap::value_parser!(u8))
                 .default_value("255"),
         )
-        .arg(Arg::new("scale_modification")
-            .long("scale_modify_f")
-            .help("scale modification factor in HNSW or HubNSW, must be in [0.2,1]")
-            .value_name("scale_modify")
-            .default_value("1.0")
-            .action(ArgAction::Set)
-            .value_parser(clap::value_parser!(f64))
+        .arg(
+            Arg::new("scale_modification")
+                .long("scale_modify_f")
+                .help("scale modification factor in HNSW or HubNSW, must be in [0.2,1]")
+                .value_name("scale_modify")
+                .default_value("1.0")
+                .action(ArgAction::Set)
+                .value_parser(clap::value_parser!(f64))
         )
         .get_matches();
 
-    // Parse the command-line arguments using get_one()
+    // Parse the command-line arguments
     let fasta_path = matches.get_one::<String>("input").unwrap().to_string();
     let kmer_size = *matches.get_one::<usize>("kmer_size").unwrap();
     let sketch_size = *matches.get_one::<usize>("sketch_size").unwrap();
@@ -136,11 +142,12 @@ fn main() {
     let hnsw_ef = *matches.get_one::<usize>("hnsw_ef").unwrap();
     let hnsw_max_nb_conn = *matches.get_one::<u8>("hnsw_max_nb_conn").unwrap();
     let scale_modify = *matches.get_one::<f64>("scale_modification").unwrap();
+
     if kmer_size > 15 {
         panic!("kmer_size must be ≤15");
     }
 
-    // Set the number of threads globally using Rayon
+    // If your code uses Rayon for something, set up the Rayon thread pool
     rayon::ThreadPoolBuilder::new()
         .num_threads(num_threads)
         .build_global()
@@ -161,92 +168,109 @@ fn main() {
     info!("Calling sketch_compressedkmer for OptDensHashSketch::<Kmer32bit, f64>");
     let sketcher = Sketcher::new(&sketch_args);
 
-    // Create a channel for the producer-consumer model
-    let (tx, rx): (Sender<(Vec<u8>, Vec<u8>)>, Receiver<(Vec<u8>, Vec<u8>)>) = channel();
+    // ---------------------------------
+    // Use Crossbeam's unbounded channel:
+    let (tx, rx): (Sender<(Vec<u8>, Vec<u8>)>, Receiver<(Vec<u8>, Vec<u8>)>) = unbounded();
 
-    // Spawn a thread to read the FASTA file and send sequences to the channel
+    // Spawn a producer thread to read the FASTA file and send sequences
     let fasta_path_clone = fasta_path.clone();
     let producer_handle = thread::spawn(move || {
-        // Open the FASTA file
-        let mut reader =
-            parse_fastx_file(&Path::new(&fasta_path_clone)).expect("Invalid path/file");
+        let mut reader = parse_fastx_file(Path::new(&fasta_path_clone))
+            .expect("Invalid path/file for FASTA");
 
         // Read sequences and send them to the channel
         while let Some(record) = reader.next() {
             let seqrec = record.expect("Invalid record");
-            let seq_id = seqrec.id().to_owned();
-            let seq_seq = seqrec.normalize(false).into_owned();
+            let seq_id = seqrec.id().to_owned(); // Vec<u8>
+            let seq_seq = seqrec.normalize(false).into_owned(); // Vec<u8>
             tx.send((seq_id, seq_seq)).expect("Could not send data");
         }
-        // Close the channel when done
+        // Close the sending side
         drop(tx);
     });
 
-    // Set up storage for signatures and sequence metadata
+    // Set up shared storage for signatures and metadata
     let signatures = Arc::new(Mutex::new(Vec::new()));
-    let signatures_clone = Arc::clone(&signatures);
-    let itemv = Arc::new(Mutex::new(Vec::new())); // For seqdict
-    let itemv_clone = Arc::clone(&itemv);
+    let itemv = Arc::new(Mutex::new(Vec::new()));
 
-    // Clone the sketcher for use in the consumer thread
-    let sketcher_clone = sketcher.clone();
+    // We’ll spawn multiple consumer threads
+    let mut consumer_handles = Vec::with_capacity(num_threads);
 
-    let fasta_path_clone_for_consumer = fasta_path.clone();
+    for _ in 0..num_threads {
+        // Clone everything needed inside this thread:
+        let rx_clone = rx.clone(); // Crossbeam receivers can be cloned
+        let sketcher_clone = sketcher.clone();
+        let signatures_clone = Arc::clone(&signatures);
+        let itemv_clone = Arc::clone(&itemv);
+        let fasta_path_clone_for_consumer = fasta_path.clone();
 
-    // Spawn a thread to receive sequences and sketch them
-    let consumer_handle = thread::spawn(move || {
-        // Receive sequences and sketch them
-        for (seq_id, seq_seq) in rx {
-            // Convert the sequence to the format needed by the sketcher
-            let seq = ascii_to_seq(&seq_seq).unwrap();
-            let vseq = vec![&seq];
+        let handle = thread::spawn(move || {
+            // Each consumer thread pulls data in parallel
+            for (seq_id, seq_seq) in rx_clone.iter() {
+                // Convert the sequence to the format needed by the sketcher
+                let seq = ascii_to_seq(&seq_seq).unwrap();
+                let vseq = vec![&seq];
 
-            // Sketch the sequence
-            let signatures_vec =
-                sketcher_clone.sketch_compressedkmer(&vseq, kmer_hash_fn_32bit);
+                // Sketch the sequence
+                let signatures_vec =
+                    sketcher_clone.sketch_compressedkmer(&vseq, kmer_hash_fn_32bit);
 
-            // Since we have one sequence, signatures_vec has one element
-            let signature = signatures_vec.into_iter().next().unwrap();
+                // We only have one sequence in the vector
+                let signature = signatures_vec.into_iter().next().unwrap();
 
-            // Store the signature
-            {
-                let mut signatures_lock = signatures_clone.lock().unwrap();
-                signatures_lock.push(signature);
+                // Store the signature (only 1 item)
+                {
+                    let mut signatures_lock = signatures_clone.lock().unwrap();
+                    signatures_lock.push(signature);
+                }
+                // Store sequence metadata
+                {
+                    let mut itemv_lock = itemv_clone.lock().unwrap();
+                    // Create an Id instance
+                    let id = Id::new(
+                        &fasta_path_clone_for_consumer,
+                        &String::from_utf8(seq_id).unwrap(),
+                    );
+                    // Create an ItemDict instance
+                    let item = ItemDict::new(id, seq.size());
+                    itemv_lock.push(item);
+                }
+                // Here seq and seq_seq are dropped -> memory freed
             }
-            // Store sequence metadata
-            {
-                let mut itemv_lock = itemv_clone.lock().unwrap();
-                // Create an Id instance using the constructor method
-                let id = Id::new(
-                    &fasta_path_clone_for_consumer.clone(),
-                    &String::from_utf8(seq_id.clone()).unwrap(),
-                );
-                // Create an ItemDict instance
-                let item = ItemDict::new(id, seq.size());
-                itemv_lock.push(item);
-            }
-        }
-    });
+        });
+        consumer_handles.push(handle);
+    }
 
-    // Wait for both threads to finish
+    // Wait for the producer to finish
     producer_handle.join().expect("Producer thread panicked");
-    consumer_handle.join().expect("Consumer thread panicked");
 
-    // After collecting all signatures, build the HNSW index in the main thread
+    // Wait for all consumers to finish
+    for handle in consumer_handles {
+        handle.join().expect("Consumer thread panicked");
+    }
+
+    // ---- Now build HNSW in the main thread ----
     println!("Building HNSW index...");
 
     // Retrieve the collected signatures and sequence metadata
-    let signatures = Arc::try_unwrap(signatures).unwrap().into_inner().unwrap();
+    let signatures = Arc::try_unwrap(signatures)
+        .expect("Multiple references to signatures remain")
+        .into_inner()
+        .expect("Mutex was poisoned in signatures");
     let mut itemv = match Arc::try_unwrap(itemv) {
-        Ok(mutex) => mutex.into_inner().unwrap(),
-        Err(_arc_mutex) => {
-            // Handle the case where the Arc has more than one strong reference.
-            panic!("Cannot unwrap Arc because there are multiple references");
-        }
-    };
+            Ok(mutex) => mutex.into_inner().unwrap(),
+            Err(_arc_mutex) => {
+                // Handle the case where the Arc has more than one strong reference.
+                panic!("Cannot unwrap Arc because there are multiple references");
+            }
+        };
 
     // Create data as Vec<(&Vec<f64>, usize)> for HNSW insertion
-    let data: Vec<(&Vec<f64>, usize)> = signatures.iter().enumerate().map(|(idx, sig)| (sig, idx)).collect();
+    let data: Vec<(&Vec<f64>, usize)> = signatures
+        .iter()
+        .enumerate()
+        .map(|(idx, sig)| (sig, idx))
+        .collect();
 
     // Build the HNSW index
     let hnsw_params = HnswParams::new(hnsw_capacity, hnsw_ef, hnsw_max_nb_conn, scale_modify);
@@ -261,28 +285,26 @@ fn main() {
         hnsw_params.get_ef(),
         DistHamming {},
     );
+
     hnsw.modify_level_scale(scale_modify);
     hnsw.set_extend_candidates(true);
     hnsw.set_keeping_pruned(false);
-    
-    // Parallel insert all signatures to build HNSW index, using all threads by default
+
+    // Parallel insert all signatures to build HNSW index
     hnsw.parallel_insert(&data);
 
     // Create seqdict
     let mut seqdict = SeqDict::new(1000000);
-
     seqdict.0.append(&mut itemv);
 
-    // Now, create processing_params, which includes HnswParams, sketch_args, and block_flag
-    let block_flag = false; // Set as appropriate
+    // Create processing_params
+    let block_flag = false; // or true, as needed
     let processing_params = ProcessingParams::new(hnsw_params, sketch_args, block_flag);
 
-    // Now dump all data
+    // Dump all data
     let dump_path = PathBuf::from(".");
     let dump_path_ref = &dump_path;
-
     let _ = dumpall(dump_path_ref, &hnsw, &seqdict, &processing_params);
 
-    println!("HNSW index built successfully \n");
-
+    println!("HNSW index built successfully.\n");
 }

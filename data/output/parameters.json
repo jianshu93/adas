@@ -1,0 +1,1 @@
+{"hnsw":{"capacity":50000000,"ef":1600,"max_nb_conn":255,"scale_modification":0.25},"sketch":{"kmer_size":8,"sketch_size":512,"algo":"OPTDENS","data_t":"DNA"},"block_flag":false}
