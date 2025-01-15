@@ -150,7 +150,7 @@ fn main() {
         );
     };
 
-    println!("Sketching...");
+    
     // Load sketching parameters
     let sketch_params = processing_params.get_sketching_params();
 
@@ -161,6 +161,7 @@ fn main() {
     info!("Calling sketch_compressedkmer for OptDensHashSketch::<Kmer32bit, f64>");
     let sketcher = Sketcher::new(&sketch_params);
 
+    println!("Loading HNSW index...");
     // Load the HNSW index
     let hnsw_res = hnswio.load_hnsw::<
         <OptDensHashSketch<Kmer, f64> as SeqSketcherT<Kmer32bit>>::Sig,
@@ -184,7 +185,9 @@ fn main() {
             );
         }
     };
+    println!("HNSW index loaded...");
 
+    println!("Sketching...");
     // Set the number of threads globally using Rayon
     rayon::ThreadPoolBuilder::new()
         .num_threads(num_threads)
@@ -277,7 +280,7 @@ fn main() {
     };
     println!("Sketching done.");
     // Searching
-    println!("Searching HNSW index...");
+    
     let ef_search = 5000;
     let out_threshold = 1.0;
     let outname = "adas.neighbors.txt";
@@ -297,6 +300,7 @@ fn main() {
     }
     let mut outfile = BufWriter::new(outfile.unwrap());
 
+    println!("Searching HNSW index...");
     // We do parallel_search with our signature vector
     let knn_neighbours = hnsw.parallel_search(&signatures, nb_answers_search, ef_search); 
     for i in 0..knn_neighbours.len() {
@@ -308,5 +312,5 @@ fn main() {
             );
         }
     }
-    println!("Done. Search results saved to adas.neighbors.txt");
+    println!("Searching HNSW index done. Search results saved to adas.neighbors.txt");
 }

@@ -149,6 +149,7 @@ fn main() {
     info!("Calling sketch_compressedkmer for OptDensHashSketch::<Kmer32bit, f64>");
     let sketcher = Sketcher::new(&sketch_params);
 
+    println!("Loading HNSW index...");
     // Load the HNSW index
     let hnsw_res = hnswio.load_hnsw::<
         <OptDensHashSketch<Kmer, f64> as SeqSketcherT<Kmer32bit>>::Sig,
@@ -175,17 +176,16 @@ fn main() {
             );
         }
     };
+    println!("HNSW index loaded...");
 
+    println!("Sketching...");
     // Set the number of threads globally using Rayon
     rayon::ThreadPoolBuilder::new()
         .num_threads(num_threads)
         .build_global()
         .unwrap();
 
-    // -------------------------------------------------
-    // 1) Create Crossbeam's unbounded channel.
-    //    Producer will feed (seq_id, seq_seq) pairs.
-    use crossbeam::channel::unbounded;
+
     let (tx, rx): (Sender<(Vec<u8>, Vec<u8>)>, Receiver<(Vec<u8>, Vec<u8>)>) = unbounded();
 
     // 2) Producer thread: reads FASTA -> sends to channel
@@ -256,8 +256,7 @@ fn main() {
     for handle in consumer_handles {
         handle.join().expect("Consumer thread panicked");
     }
-
-    println!("Inserting into HNSW index...");
+    
 
     // 6) Retrieve collected signatures & itemv
     let signatures = Arc::try_unwrap(signatures)
@@ -272,6 +271,9 @@ fn main() {
             }
         };
 
+    println!("Sketching done.");
+
+    println!("Inserting into HNSW index...");
     // 7) Create data as Vec<(&Vec<f64>, usize)> for HNSW insertion
     let data: Vec<(&Vec<f64>, usize)> = signatures
         .iter()
@@ -293,5 +295,5 @@ fn main() {
 
     let _ = dumpall(dump_path_ref, &hnsw, &seqdict, &processing_params);
 
-    println!("HNSW index inserted successfully \n");
+    println!("Inserting inton HNSW index done. \n");
 }
