@@ -13,7 +13,7 @@ dependencies = [
  "crossbeam-utils",
  "env_logger 0.11.6",
  "gsearch",
- "hnsw_rs 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hnsw_rs",
  "kmerutils",
  "log",
  "minimap2",
@@ -126,7 +126,7 @@ dependencies = [
  "csv",
  "env_logger 0.11.6",
  "hdrhistogram",
- "hnsw_rs 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hnsw_rs",
  "indexmap 2.7.0",
  "indxvec",
  "katexit",
@@ -449,9 +449,9 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags"
-version = "2.7.0"
+version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1be3f42a67d6d345ecd59f675f3f012d6974981560836e938c22b424b85ce1be"
+checksum = "8f68f53c83ab957f72c32642f3868eec03eb974d1fb82e453128456482613d36"
 
 [[package]]
 name = "bitvec"
@@ -619,9 +619,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.9"
+version = "1.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8293772165d9345bdaaa39b45b2109591e63fe5e6fbc23c6ff930a048aa310b"
+checksum = "13208fcbb66eaeffe09b99fffbe1af420f00a7b35aa99ad683dfc1aa76145229"
 dependencies = [
  "shlex",
 ]
@@ -1133,8 +1133,9 @@ dependencies = [
 
 [[package]]
 name = "frag_gene_scan_rs"
-version = "1.0.1"
-source = "git+https://gitlab.com/Jianshu_Zhao/fraggenescanrs#7bb6708a22786d9840d5f249993ae60cd15b7dd8"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a4e4a4a58dc57a03e8c14f12ddacb6377b9d1a3b3cdf7ac5fefd87fa69ffc57"
 dependencies = [
  "anyhow",
  "clap 2.34.0",
@@ -1235,7 +1236,8 @@ dependencies = [
 [[package]]
 name = "gsearch"
 version = "0.1.5"
-source = "git+https://github.com/jean-pierreBoth/gsearch#0a672289be8550f755ed1171a48187f33098f670"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17b72ddc763aec39bd3fdf880df4cd0bbedf9ce153c01a706f87e51810cbd328"
 dependencies = [
  "anyhow",
  "bigsig",
@@ -1250,7 +1252,7 @@ dependencies = [
  "env_logger 0.11.6",
  "frag_gene_scan_rs",
  "fxhash",
- "hnsw_rs 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hnsw_rs",
  "kmerutils",
  "lazy_static",
  "log",
@@ -1357,9 +1359,9 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "histogram"
-version = "0.11.1"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58cf6b99a250776d813cdf2f0b478a053a822d078e7a2baf5cb36afc88c41a7c"
+checksum = "e1afb38a8df06a3145793cc0bd7d7b929211de1fcee50a89fa4bc0f5cd9bf0ca"
 dependencies = [
  "thiserror",
 ]
@@ -1369,30 +1371,6 @@ name = "hnsw_rs"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "87e59cf4d04a56c67454ad104938ae4c785bc5db7ac17d27b93e3cb5a9abe6a5"
-dependencies = [
- "anndists",
- "anyhow",
- "bincode",
- "cfg-if 1.0.0",
- "cpu-time",
- "env_logger 0.10.2",
- "hashbrown 0.14.5",
- "indexmap 2.7.0",
- "lazy_static",
- "log",
- "mmap-rs",
- "num-traits",
- "num_cpus",
- "parking_lot",
- "rand 0.8.5",
- "rayon",
- "serde",
-]
-
-[[package]]
-name = "hnsw_rs"
-version = "0.3.1"
-source = "git+https://github.com/jean-pierreBoth/hnswlib-rs#b2e1469aa2fa30d42c20930822fb6309eb19b730"
 dependencies = [
  "anndists",
  "anyhow",
@@ -1712,7 +1690,8 @@ dependencies = [
 [[package]]
 name = "kmerutils"
 version = "0.0.12"
-source = "git+https://github.com/jean-pierreBoth/kmerutils#174e2d21f1642facc6951ca5f4e322db4b2caaef"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6589802fcdd3fa02f7825762b7e9e6642f515ba4389b67db4ea646cf070759c6"
 dependencies = [
  "anyhow",
  "bloom",
@@ -1723,7 +1702,7 @@ dependencies = [
  "fnv",
  "fxhash",
  "hdrhistogram",
- "hnsw_rs 0.3.1 (git+https://github.com/jean-pierreBoth/hnswlib-rs)",
+ "hnsw_rs",
  "indexmap 2.7.0",
  "lazy_static",
  "log",
@@ -1795,7 +1774,7 @@ version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c0ff37bd590ca25063e35af745c343cb7a0271906fb7b37e4813e8f79f00268d"
 dependencies = [
- "bitflags 2.7.0",
+ "bitflags 2.8.0",
  "libc",
 ]
 
@@ -1829,9 +1808,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.22"
+version = "0.4.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
+checksum = "04cbf5b083de1c7e0222a7a51dbfdba1cbe1c6ab0b15e29fff3f6c077fd9cd9f"
 
 [[package]]
 name = "lzma-sys"
@@ -2745,7 +2724,7 @@ version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "03a862b389f93e68874fbf580b9de08dd02facb9a788ebadaf4a3fd33cf58834"
 dependencies = [
- "bitflags 2.7.0",
+ "bitflags 2.8.0",
 ]
 
 [[package]]
@@ -3357,7 +3336,7 @@ version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec7dddc5f0fee506baf8b9fdb989e242f17e4b11c61dfbb0635b705217199eea"
 dependencies = [
- "bitflags 2.7.0",
+ "bitflags 2.8.0",
  "byteorder 1.5.0",
  "enum-as-inner",
  "libc",
@@ -3626,9 +3605,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.11.1"
+version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b913a3b5fe84142e269d63cc62b64319ccaf89b748fc31fe025177f767a756c4"
+checksum = "744018581f9a3454a9e15beb8a33b017183f1e7c0cd170232a2d1453b23a51c4"
 dependencies = [
  "getrandom 0.2.15",
  "serde",
