@@ -133,7 +133,7 @@ Options:
 ### use real-world data
 ```bash
 ### build graph database from sequences, output in current folder (5 files)
-./target/release/adas-build -i ./data/SAR11_cluster_centroid.fa -k 8 -s 128 -t 8 --max_nb_connection 128 --hnsw-ef 800 --scale_modify_f 0.25
+./target/release/adas-build -i ./data/SAR11_cluster_centroid.fa -k 8 -s 500 -t 8 --max_nb_connection 64 --hnsw-ef 800
 
 ### search query against per-built sequence database
 ./target/release/adas-search -i ./data/query.fasta -b . -n 50
