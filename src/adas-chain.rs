@@ -73,7 +73,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .expect("Unable to build index");
 
     // Set up a channel for passing sequences between threads
-    let (sender, receiver): (Sender<Vec<u8>>, Receiver<Vec<u8>>) = unbounded();
+    let (sender, receiver): (Sender<(String, Vec<u8>)>, Receiver<(String, Vec<u8>)>) = unbounded();
 
     // Producer thread: reads sequences and sends them to the channel
     let query_path_clone = query_path.clone();
@@ -81,21 +81,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut reader = parse_fastx_file(&query_path_clone).expect("valid path/file");
         while let Some(result) = reader.next() {
             let record = result.expect("Error reading record");
-            sender.send(record.seq().to_vec()).expect("Error sending sequence");
+            let seq_name = String::from_utf8_lossy(record.id()).into_owned();
+            let seq = record.seq().to_vec();
+
+            // Send (sequence_name, sequence_bytes) to the consumers
+            sender.send((seq_name, seq)).expect("Error sending data to channel");
         }
     });
 
-    // Consumer threads: receive sequences and perform alignment
+    // Consumer threads: receive (name, seq) and perform alignment
     let consumers: Vec<_> = (0..num_threads).map(|_| {
         let receiver = receiver.clone();
-        // Make aligner mutable
-        let mut aligner = aligner.clone(); 
+        // Make aligner mutable for each thread
+        let mut aligner = aligner.clone();
         thread::spawn(move || {
-            let results = receiver.iter().filter_map(|seq: Vec<u8>| {
-                aligner.map(&seq, false, false, None, None, None).ok()
-            }).collect::<Vec<_>>();
-    
-            // Set aligner.idx to None before the thread exits
+            // For each (name, seq) in the channel, call aligner.map with the name
+            let results = receiver
+                .iter()
+                .filter_map(|(seq_name, seq)| {
+                    // Use the query name by passing it as Some(...) in aligner.map
+                    aligner.map(&seq, false, false, None, None, Some(seq_name.as_bytes())).ok()
+                })
+                .collect::<Vec<_>>();
+            // Set aligner.idx = None before the thread exits (helps ensure resources free)
             aligner.idx = None;
             results
         })
