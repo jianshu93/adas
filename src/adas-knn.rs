@@ -1,6 +1,6 @@
 use clap::{Arg, ArgAction, Command};
 use gsearch::utils::reloadhnsw;
-use log::{debug, info};
+use log::info;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
@@ -22,7 +22,7 @@ fn main() {
     // Use Clap to parse command-line arguments
     let matches = Command::new("adas-knn")
         .version("0.1.1")
-        .about("Extract K Nearest Neighbors (K-NN) from HNSW graph, printing actual sequence IDs.")
+        .about("Extract K Nearest Neighbors (K-NN) from HNSW graph.")
         .arg(
             Arg::new("database_path")
                 .short('b')
