@@ -4,26 +4,20 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::path::PathBuf;
-use num_cpus;
 use std::fs::OpenOptions;
 
 use hnsw_rs::prelude::*;
 use gsearch::utils::idsketch::{Id, ItemDict};
 use gsearch::utils::parameters::*;
-use gsearch::utils::dumpload::*;
 use gsearch::utils::reloadhnsw;
 use gsearch::utils::SeqDict;
 use gsearch::answer::ReqAnswer;
-
-use kmerutils::sketcharg::{SeqSketcherParams, SketchAlgo};
 use kmerutils::base::{kmergenerator::*, Kmer32bit, CompressedKmerT};
 use kmerutils::sketching::setsketchert::*;
-use kmerutils::sketcharg::DataType;
 use kmerutils::base::alphabet::Alphabet2b;
 use kmerutils::base::sequence::Sequence as SequenceStruct;
-use probminhash::setsketcher::SetSketchParams;
 
-use log::{debug, info};
+use log::info;
 use std::io::BufWriter;
 use crossbeam::channel::{unbounded, Sender, Receiver};
 
@@ -126,6 +120,13 @@ fn main() {
     let nb_answers_search = *matches.get_one::<usize>("nb_answers").unwrap();
     let db_path = matches.get_one::<String>("database_path").unwrap().to_string();
     let num_threads = *matches.get_one::<usize>("threads").unwrap();
+    
+    let num_cpus = num_cpus::get();
+    let num_threads = if num_threads > num_cpus {
+        num_cpus
+    } else {
+        num_threads
+    };
     println!("Using {} threads", num_threads);
     
     let search_params = SearchParams::new(db_path.clone(), fasta_path.clone(), nb_answers_search);
@@ -271,7 +272,7 @@ fn main() {
         .expect("Multiple references to signatures remain")
         .into_inner()
         .expect("Mutex was poisoned in signatures");
-    let mut itemv = match Arc::try_unwrap(itemv) {
+    let itemv = match Arc::try_unwrap(itemv) {
         Ok(mutex) => mutex.into_inner().unwrap(),
         Err(_arc_mutex) => {
             // Handle the case where the Arc has more than one strong reference.

@@ -5,7 +5,6 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::path::PathBuf;
 use num_cpus;
-use std::fs::OpenOptions;
 use crossbeam::channel::{unbounded, Sender, Receiver};
 
 use hnsw_rs::prelude::*;
@@ -14,18 +13,12 @@ use gsearch::utils::parameters::*;
 use gsearch::utils::dumpload::*;
 use gsearch::utils::reloadhnsw;
 use gsearch::utils::SeqDict;
-use gsearch::answer::ReqAnswer;
-
-use kmerutils::sketcharg::{SeqSketcherParams, SketchAlgo};
 use kmerutils::base::{kmergenerator::*, Kmer32bit, CompressedKmerT};
 use kmerutils::sketching::setsketchert::*;
-use kmerutils::sketcharg::DataType;
 use kmerutils::base::alphabet::Alphabet2b;
 use kmerutils::base::sequence::Sequence as SequenceStruct;
-use probminhash::setsketcher::SetSketchParams;
 
-use log::{debug, info};
-use std::io::BufWriter;
+use log::info;
 
 fn ascii_to_seq(bases: &[u8]) -> Result<SequenceStruct, ()> {
     let alphabet = Alphabet2b::new();
@@ -114,6 +107,13 @@ fn main() {
     let fasta_path = matches.get_one::<String>("input").unwrap().to_string();
     let db_path = matches.get_one::<String>("database_path").unwrap().to_string();
     let num_threads = *matches.get_one::<usize>("threads").unwrap();
+    let num_cpus = num_cpus::get();
+    let num_threads = if num_threads > num_cpus {
+        num_cpus
+    } else {
+        num_threads
+    };
+    println!("Using {} threads", num_threads);
     println!("Using {} threads", num_threads);
 
     let database_dirpath = Path::new(&db_path);
@@ -140,7 +140,7 @@ fn main() {
 
     // Load sketching parameters
     let sketch_params = processing_params.get_sketching_params();
-    let hnsw_params = processing_params.get_hnsw_params();
+    let _hnsw_params = processing_params.get_hnsw_params();
 
     // Type aliases 
     type Kmer = Kmer32bit;

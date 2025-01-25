@@ -19,9 +19,7 @@ use kmerutils::sketching::setsketchert::*;
 use kmerutils::sketcharg::DataType;
 use kmerutils::base::alphabet::Alphabet2b;
 use kmerutils::base::sequence::Sequence as SequenceStruct;
-use probminhash::setsketcher::SetSketchParams;
-
-use log::{debug, info};
+use log::info;
 
 fn ascii_to_seq(bases: &[u8]) -> Result<SequenceStruct, ()> {
     let alphabet = Alphabet2b::new();
@@ -120,11 +118,16 @@ fn main() {
         )
         .get_matches();
 
-    // Parse the command-line arguments
     let fasta_path = matches.get_one::<String>("input").unwrap().to_string();
     let kmer_size = *matches.get_one::<usize>("kmer_size").unwrap();
     let sketch_size = *matches.get_one::<usize>("sketch_size").unwrap();
     let num_threads = *matches.get_one::<usize>("threads").unwrap();
+    let num_cpus = num_cpus::get();
+    let num_threads = if num_threads > num_cpus {
+        num_cpus
+    } else {
+        num_threads
+    };
     println!("Using {} threads", num_threads);
     let hnsw_ef = *matches.get_one::<usize>("hnsw_ef").unwrap();
     let hnsw_max_nb_conn = *matches.get_one::<u8>("hnsw_max_nb_conn").unwrap();

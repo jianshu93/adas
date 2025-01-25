@@ -1,6 +1,6 @@
 [package]
 name = "adas"
-version = "0.1.1"
+version = "0.1.0"
 repository = "https://github.com/jianshu93/Nonredun"
 edition = "2021"
 license = "MIT OR Apache-2.0"
@@ -31,25 +31,21 @@ path = "src/adas-knn.rs"
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
 num_cpus = "1.16.0"
-needletail = "0.5.1"
+needletail = "=0.5.1"
 rayon = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 num = "0.4"
-#gsearch = { version = "0.1.5", default-features = false, features = ["simdeez_f"]}
+#gsearch = { version = "0.1.4", default-features = false, features = ["simdeez_f"]}
 gsearch = { git= "https://github.com/jean-pierreBoth/gsearch", default-features = false, features = ["simdeez_f"]}
-#gsearch = { path = "../gsearch",default-features = false, features = ["simdeez_f"]}
 kmerutils = { version = "=0.0.12", features = ["simdeez_f"]}
-#kmerutils = { git = "https://github.com/jean-pierreBoth/kmerutils" ,features = ["simdeez_f"]}
-#kmerutils = { path = "../kmerutils", features = ["simdeez_f"] }
-# hnsw_rs = { path = "../hnswlib-rs",features = ["simdeez_f"] }
-hnsw_rs =  { version = "=0.3.1" }
+##kmerutils = { git = "https://github.com/jean-pierreBoth/kmerutils" ,features = ["simdeez_f"]}
+hnsw_rs =  { version = "0.3.1" }
 probminhash = "0.1.11"
-minimap2 = "=0.1.21+minimap2.2.28"
+minimap2 = { version = "=0.1.21+minimap2.2.28", features = ["simde"] }
 log = { version = "0.4" }
 crossbeam-utils = { version = "0.8" }
 crossbeam-channel = { version = "0.5" }
 crossbeam = { version = "0.8" }
 env_logger = { version = "0.11" }
-annembed = { version = "=0.1.4", default-features = false }
-#annembed = { path = "../annembed", optional = true }
+annembed = { version = "0.1.4", default-features = false }
 num-traits = "0.2.19"

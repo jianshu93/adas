@@ -5,6 +5,7 @@ use std::thread;
 use clap::{Arg, ArgAction, Command, value_parser};
 use std::fs::File;
 use std::io::Write;
+use num_cpus;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Parse command-line arguments using Clap 4.3
@@ -46,19 +47,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .short('o')
                 .long("output")
                 .value_name("OUTPUT_PATH")
-                .help("Output path to write the results")
+                .help("Output path to write the results (PAF format)")
                 .required(true)
                 .action(ArgAction::Set)
                 .value_parser(value_parser!(String)),
         )
         .get_matches();
 
-    // Retrieve the command-line arguments
     let ref_path = matches.get_one::<String>("reference").unwrap();
     let query_path = matches.get_one::<String>("query").unwrap();
     let num_threads = *matches.get_one::<usize>("threads").unwrap();
     let output_path = matches.get_one::<String>("output").unwrap();
 
+    let num_cpus = num_cpus::get();
+    let num_threads = if num_threads > num_cpus {
+        num_cpus
+    } else {
+        num_threads
+    };
     // Build the aligner with the specified reference and number of threads
     let aligner = Aligner::builder()
         .ava_ont()
@@ -82,7 +88,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Consumer threads: receive sequences and perform alignment
     let consumers: Vec<_> = (0..num_threads).map(|_| {
         let receiver = receiver.clone();
-        let mut aligner = aligner.clone(); // Make aligner mutable
+        // Make aligner mutable
+        let mut aligner = aligner.clone(); 
         thread::spawn(move || {
             let results = receiver.iter().filter_map(|seq: Vec<u8>| {
                 aligner.map(&seq, false, false, None, None, None).ok()
@@ -104,11 +111,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         results.append(&mut res);
     }
 
-    // Write the results to the specified output file
+    // Write the results to output file
     let mut output_file = File::create(output_path)?;
     for result in results {
-        // Here, you might want to format the result appropriately
-        // For demonstration, we're writing the debug representation
         writeln!(output_file, "{:?}", result)?;
     }
 
