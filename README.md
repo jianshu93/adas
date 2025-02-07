@@ -1,6 +1,12 @@
+[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/adas/README.html)
+![](https://anaconda.org/bioconda/adas/badges/license.svg)
+![](https://anaconda.org/bioconda/adas/badges/version.svg)
+![](https://anaconda.org/bioconda/adas/badges/latest_release_relative_date.svg)
+![](https://anaconda.org/bioconda/adas/badges/platforms.svg)
+[![install with conda](https://anaconda.org/bioconda/adas/badges/downloads.svg)](https://anaconda.org/bioconda/adas)
 
 # ADAS:Advanced Database Search for Long Sequences
-This crate (currently in development) is designed for searching long sequence databases, especially biological sequences. The core idea is from innovative applications of MinHash, Coreset and hierarchical navigable small world graphs (HNSW) algorithms.
+This crate (currently in development) is designed for searching long sequence databases, especially biological sequences. The core idea is from innovative applications of Minimizer, MinHash, Coreset and hierarchical navigable small world graphs (HNSW) algorithms.
 
 <div align="center">
   <img width="75%" src ="adas.jpg">
