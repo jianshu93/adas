@@ -13,6 +13,12 @@ Here we simply describe the algorithm:
 3. For closest sequences to query seqeunces (e.g., top 100), seed-chain-exend and adaptive banded dynamic progrmming will be performed. 
 
 ## Install
+## Install from bioconda
+```bash
+conda install -c bioconda -c conda-forge adas
+adas-build -h
+adas-search -h
+```
 ### compile from source
 
 ```bash
