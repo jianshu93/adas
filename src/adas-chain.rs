@@ -69,6 +69,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let aligner = Aligner::builder()
         .map_ont()
         .with_index_threads(num_threads)
+        .with_sam_out()
+        .with_cigar()
         .with_index(ref_path, None)
         .expect("Unable to build index");
 
