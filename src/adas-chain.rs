@@ -47,7 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .short('o')
                 .long("output")
                 .value_name("OUTPUT_PATH")
-                .help("Output path to write the results (PAF format)")
+                .help("Output path to write the results (SAM format)")
                 .required(true)
                 .action(ArgAction::Set)
                 .value_parser(value_parser!(String)),
