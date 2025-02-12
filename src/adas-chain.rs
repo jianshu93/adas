@@ -67,7 +67,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     // Build the aligner with the specified reference and number of threads
     let aligner = Aligner::builder()
-        .ava_ont()
+        .map_ont()
         .with_index_threads(num_threads)
         .with_index(ref_path, None)
         .expect("Unable to build index");
