@@ -1894,9 +1894,9 @@ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
 name = "minimap2"
-version = "0.1.21+minimap2.2.28"
+version = "0.1.23+minimap2.2.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a01677cfd97a5531c2b36ba7ade7e0c3222870a5c3579e237f84972c08a46d39"
+checksum = "421be499d25bb88e92934ff5f3400e45505640c3954b1d5c5d825c1ac7cd2c58"
 dependencies = [
  "libc",
  "minimap2-sys",

@@ -41,7 +41,7 @@ kmerutils = { version = "=0.0.12", features = ["simdeez_f"]}
 ##kmerutils = { git = "https://github.com/jean-pierreBoth/kmerutils" ,features = ["simdeez_f"]}
 hnsw_rs =  { version = "0.3.1" }
 probminhash = "0.1.11"
-minimap2 = { version = "=0.1.21+minimap2.2.28", features = ["simde"] }
+minimap2 = { version = "=0.1.23+minimap2.2.28", features = ["simde"] }
 log = { version = "0.4" }
 crossbeam-utils = { version = "0.8" }
 crossbeam-channel = { version = "0.5" }
